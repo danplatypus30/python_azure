@@ -8,10 +8,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # get the request
     url = req.params.get('url')
     # send the response
-    return func.HttpResponse(
-        json.dumps(view_vt(url)),
-        status_code=200
-    )
+    if url:
+        return func.HttpResponse(
+            "insert a url parameter for a result :D",
+            status_code=200
+        )
+    else:
+        return func.HttpResponse(
+            json.dumps(view_vt(url)),
+            status_code=200
+        )
 
 def view_vt(url):
     import os
