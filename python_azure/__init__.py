@@ -10,12 +10,12 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     # send the response
     if url:
         return func.HttpResponse(
-            "insert a url parameter for a result :D",
+            json.dumps(view_vt(url)),
             status_code=200
         )
     else:
         return func.HttpResponse(
-            json.dumps(view_vt(url)),
+            "insert a url parameter for a result :D",
             status_code=200
         )
 
