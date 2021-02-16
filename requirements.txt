@@ -3,3 +3,9 @@
 # Manually managing azure-functions-worker may cause unexpected issues
 
 azure-functions
+idna
+requests
+lxml
+virustotal3
+pytest
+pytest-runner
