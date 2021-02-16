@@ -20,6 +20,7 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
     if url:
         return func.HttpResponse(
             json.dumps(dc.req_vt_whois_maldom_puny(url)),
+            # json.dumps(dc.check_domain_punycode(url)),
             status_code=200
         )
     else:

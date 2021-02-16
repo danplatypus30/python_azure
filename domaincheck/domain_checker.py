@@ -7,19 +7,23 @@ def retrieve_vt_analysis_stats(url):
     """
     # pip install virustotal3(Unofficial).
     import virustotal3.core
-    # url = "www.google.com"
-    api_key = '***REMOVED***'
+    import config
 
-    # Data is returned as a dict. We can just iterate through to get the required information.
-    # analysis_result = virustotal3.core.URL(api_key).get_network_location(url, 5000)
-    analysis_result = virustotal3.core.URL(api_key).info_url(url, 5000)
+    api_key = config.VT_API_KEY
 
-    mal_result = analysis_result['data']['attributes']['last_analysis_stats']
-    # print('Analysis result: {} malicious, {} harmless, {} sus, {} timeout, {} undetected'.format(x['malicious'], x['harmless'], x['suspicious'], x['timeout'], x['undetected']))
-    return mal_result
+    try:
+        # Data is returned as a dict. We can just iterate through to get the required information.
+        # analysis_result = virustotal3.core.URL(api_key).get_network_location(url, 5000)
+        analysis_result = virustotal3.core.URL(api_key).info_url(url, 2500)
+
+        mal_result = analysis_result['data']['attributes']['last_analysis_stats']
+        # print('Analysis result: {} malicious, {} harmless, {} sus, {} timeout, {} undetected'.format(x['malicious'], x['harmless'], x['suspicious'], x['timeout'], x['undetected']))
+        return mal_result
+    except:
+        return None
 
 
-def check_domain_punycode(url='München.com'):
+def check_domain_punycode(url):
     """
     This checks if the string "xn--" inside a string which is "required" if the url/domain is in punycode.
     Alternatively, understand that unicode will need to be translated to punycode for urls.
@@ -27,26 +31,18 @@ def check_domain_punycode(url='München.com'):
     :param url: String.
     :return: Boolean. True if URL is in unicode(punycode-able).
     """
-    import idna
-    import re
-    
-    # TODO: Check if got punycode on entire URL. Currently only works on the domains.
-    #       - idna does not like "/", resulting in issues.
-    # TODO: IDNA only supports if unicode is 1st character. Else, InvalidCodepoint error.
-     
-    # Strips "http(s)" from url.
-    domain_regex = r'^(?:http[s]?\:\/\/)?(?P<domain>[^\/\s]+)'
-    domain = re.match(pattern=domain_regex, string=url).group('domain')
-
-    domain_idna = idna.encode(domain)
-    # print(type(domain))
-    # print(domain_idna)
-    if b'xn--' in domain_idna:
-        # print('True')
-        return True
-    else:
-        # print('False')
-        return False
+    # url='München.com'
+    try:
+        domain_idna = url.encode('idna')
+        # print(domain_idna)
+        if b'xn--' in domain_idna:
+            # print('True')
+            return True
+        else:
+            # print('False')
+            return False
+    except:
+        return None
 
 
 def download_blocklist():
@@ -59,16 +55,20 @@ def download_blocklist():
     import os
     # print('Starting download of malware domain list...')
     url = 'https://zonefiles.io/f/compromised/domains/full/compromised_domains_full.txt'
-    r = requests.get(url)
 
-    filename = url.split('/')[-1]  # this will take only -1 split part of the url
-    domains_sorted = [domain + '\n' for domain in r.text.split('\n')[1:-2]] # Removes the 1st header line and last empty line.
-    domains_sorted.sort()   # Sorts the list alphabetically(linear)
+    try:
+        r = requests.get(url)
 
-    filepath = os.path.join(os.path.dirname(__file__), filename)
-    # Write to file(overwrite).
-    with open(filepath, 'w') as output_file:
-        output_file.writelines(domains_sorted)
+        filename = url.split('/')[-1]  # this will take only -1 split part of the url
+        domains_sorted = [domain + '\n' for domain in r.text.split('\n')[1:-2]] # Removes the 1st header line and last empty line.
+        domains_sorted.sort()   # Sorts the list alphabetically(linear)
+
+        filepath = os.path.join(os.path.dirname(__file__), filename)
+        # Write to file(overwrite).
+        with open(filepath, 'w') as output_file:
+            output_file.writelines(domains_sorted)
+    except:
+        return None
 
 
 def check_url_in_blocklist(url):
@@ -91,18 +91,21 @@ def check_url_in_blocklist(url):
     domain_regex = r'^(?:http[s]?\:\/\/)?(?P<domain>[^\/\s]+)'
     domain = re.match(pattern=domain_regex, string=url).group('domain')
 
-    with open(filepath, 'rb') as file:
-        # Maps the file to memory(in theory faster execution time.
-        mmap = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
+    try:
+        with open(filepath, 'rb') as file:
+            # Maps the file to memory(in theory faster execution time.
+            mmap = mmap.mmap(file.fileno(), 0, access=mmap.ACCESS_READ)
 
-        # "-1" is returned when item cannot be found.
-        # Therefore, return True when URL is in blocklist.
-        if mmap.find(domain.encode(), 0, -1) != -1:
-            # print('URL found.')
-            return True
-        else:
-            # print('URL NOT found.')
-            return False
+            # "-1" is returned when item cannot be found.
+            # Therefore, return True when URL is in blocklist.
+            if mmap.find(domain.encode(), 0, -1) != -1:
+                # print('URL found.')
+                return True
+            else:
+                # print('URL NOT found.')
+                return False
+    except:
+        return None
 
 
 def retrieve_whois(url, xml=None):
@@ -113,10 +116,10 @@ def retrieve_whois(url, xml=None):
     :return: Boolean. True if website is relatively new(<365 days).
     """
     import requests
-    from io import StringIO
     import lxml
     from lxml import etree, objectify
     from xml.dom import minidom
+    import config
 
     def pretty_print(elem):
         """
@@ -144,15 +147,19 @@ def retrieve_whois(url, xml=None):
 
     # Returns as a XML text.
     whois_server_url = 'https://www.whoisxmlapi.com/whoisserver/WhoisService'
-    api_key = '***REMOVED***'
+    api_key = config.WHOIS_API_KEY
     data = {
         'apiKey': api_key,
         'domainName': url
     }
-    xml = requests.post(whois_server_url, data).text
-    root = lxml.objectify.fromstring(xml.encode("utf-8"))
+    
+    try:
+        xml = requests.post(whois_server_url, data).text
+        root = lxml.objectify.fromstring(xml.encode("utf-8"))
 
-    return check_age(root.estimatedDomainAge.text)
+        return check_age(root.estimatedDomainAge.text)
+    except:
+        return None
 
 
 def req_vt_whois_maldom_puny(url):
@@ -166,22 +173,23 @@ def req_vt_whois_maldom_puny(url):
     :param url: String.
     :return: Dict. Dictionary of all results returned. 
     """
-    import json
     results = {}
+    try:
+        # MalDomain.py
+        results['maldomain_result'] = check_url_in_blocklist(url)
+        # WHOIS.py
+        results['whois_result'] = retrieve_whois(url)
+        # VT.py
+        # vt_results = VT.view_vt(url)
+        # if int(vt_results['malicious']) > 5:
+        #     results['vt_result'] = True
+        # else:
+        #     results['vt_result'] = False
+        results['vt_result'] = retrieve_vt_analysis_stats(url)
+        # PunycodeDet.py
+        results['puny_result'] = check_domain_punycode(url)
 
-    # MalDomain.py
-    results['maldomain_result'] = check_url_in_blocklist(url)
-    # WHOIS.py
-    results['whois_result'] = retrieve_whois(url)
-    # VT.py
-    # vt_results = VT.view_vt(url)
-    # if int(vt_results['malicious']) > 5:
-    #     results['vt_result'] = True
-    # else:
-    #     results['vt_result'] = False
-    results['vt_result'] = retrieve_vt_analysis_stats(url)
-    # PunycodeDet.py
-    results['puny_result'] = check_domain_punycode(url)
-
-    # Returns dictionary of all results.
-    return results
+        # Returns dictionary of all results.
+        return results
+    except:
+        return None

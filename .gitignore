@@ -1,3 +1,6 @@
+# API/Passwords
+config.py
+
 # Manually added ignores
 .idea/
 
